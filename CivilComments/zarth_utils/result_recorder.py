@@ -16,7 +16,7 @@ from zarth_utils.config import Config
 
 
 class ResultRecorder:
-    def __init__(self, path_record, initial_record=None, use_git=True):
+    def __init__(self, path_record, initial_record=None): #, use_git=True
         """
         Initialize the result recorder. The results will be saved in a temporary file defined by path_record.temp.
         To end recording and transfer the temporary files, self.end_recording() must be called.
@@ -41,10 +41,10 @@ class ResultRecorder:
         if initial_record is not None:
             self.update(initial_record)
 
-        if use_git:
-            repo = git.Repo(path=os.getcwd())
-            assert not repo.is_dirty()
-            self.__setitem__("git_commit", repo.head.object.hexsha)
+        # if use_git:
+        #     repo = git.Repo(path=os.getcwd())
+        #     assert not repo.is_dirty()
+        #     self.__setitem__("git_commit", repo.head.object.hexsha)
 
     def write_record(self, line):
         """

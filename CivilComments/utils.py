@@ -117,7 +117,7 @@ def set_logger_config_recorder_timer_seed(path_config):
             # training must be completed before evaluation
             assert os.path.exists(os.path.join(dir_model, "train.result"))
         path_record = os.path.join(dir_model, "-".join([config["phase"], stamp]))
-    res_recorder = ResultRecorder(path_record=path_record, initial_record=config.to_dict(), use_git=config["use_git"])
+    res_recorder = ResultRecorder(path_record=path_record, initial_record=config.to_dict()) # use_git=config["use_git"]
     timer = Timer()
     set_random_seed(config["random_seed"])
     return logger, config, res_recorder, timer, dir_model

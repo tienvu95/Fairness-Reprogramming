@@ -50,7 +50,7 @@ class Adversary4Z(torch.nn.Module):
         self.with_logits_y = with_logits_y
         self.with_single_y = with_single_y
 
-        # the basic input = [s]
+        # the basic input = [s], to determine which defition of fairness we are going with
         if self.with_logits:  # input = concat([input, logits])
             self.input_dim += input_dim
         if self.with_y:  # input = concat([input, s*y, s*(1-y)])
@@ -61,6 +61,7 @@ class Adversary4Z(torch.nn.Module):
             self.input_dim += 1
 
         self.use_mlp = use_mlp
+        # basically its a mlp that predict group from input dimension
         if self.use_mlp:
             hidden_dim = [128, 128]
             hidden_dim = [self.input_dim] + list(hidden_dim) + [output_dim]

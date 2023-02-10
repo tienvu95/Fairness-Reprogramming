@@ -7,7 +7,7 @@ from transformers import logging
 
 logging.set_verbosity_error()
 
-
+#define output for classification task
 def get_output(logits, output_dim, multi_label_task=False):
     if output_dim == 1 or multi_label_task:
         return logits, torch.sigmoid(logits), (torch.sigmoid(logits) >= 0.5).to(torch.int)
@@ -41,8 +41,8 @@ def projection_simplex_bisection(v, z=1, tau=1e-4, max_iter=1000):
 class Adversary4Z(torch.nn.Module):
     def __init__(self, input_dim, output_dim, with_y=False, with_logits=False, use_mlp=False, with_logits_y=False,
                  with_single_y=False):
-        super(Adversary4Z, self).__init__()
-        self.c = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True))
+        super(Adversary4Z, self).__init__() #inherit properties
+        self.c = torch.nn.Parameter(torch.tensor(1.0, requires_grad=True)) #initialize parameters to optimize for
 
         self.input_dim = input_dim
         self.with_y = with_y
@@ -65,7 +65,7 @@ class Adversary4Z(torch.nn.Module):
         if self.use_mlp:
             hidden_dim = [128, 128]
             hidden_dim = [self.input_dim] + list(hidden_dim) + [output_dim]
-            self.seq = torch.nn.ModuleList()
+            self.seq = torch.nn.ModuleList() #this is just like a python list but an instance of submodule
             for i in range(1, len(hidden_dim)):
                 self.seq.append(torch.nn.Linear(hidden_dim[i - 1], hidden_dim[i]))
                 if i != (len(hidden_dim) - 1):
@@ -74,8 +74,9 @@ class Adversary4Z(torch.nn.Module):
             self.fc = torch.nn.Linear(self.input_dim, output_dim, bias=True)
 
     def forward(self, inputs, *, y=None):
-        assert len(inputs.shape) == 2
+        assert len(inputs.shape) == 2 #test if shape of input is 2 else raise assertion error
 
+        #define for binary -- use sigmoid and multiclass -- use softmax adversary
         if inputs.shape[1] > 1:
             s = torch.softmax(inputs * (1 + torch.abs(self.c)), dim=-1)
             if self.with_y or self.with_logits_y or self.with_single_y:
@@ -84,9 +85,9 @@ class Adversary4Z(torch.nn.Module):
             s = torch.sigmoid(inputs * (1 + torch.abs(self.c)))
 
         if self.with_y:
-            assert y is not None
-            _y = y.view(-1, 1).long()
-            assert len(_y) == inputs.shape[0]
+            assert y is not None #if adversary test with y then there must be an available value for y
+            _y = y.view(-1, 1).long() # -1 is infered from other dim, if dim = n x n then view (-1,1) transform to n x 1
+            assert len(_y) == inputs.shape[0] #size of y must be compatible with the input
             encoded_inputs = torch.cat([s, s * _y, s * (1 - _y)], dim=1)
         else:
             assert y is None

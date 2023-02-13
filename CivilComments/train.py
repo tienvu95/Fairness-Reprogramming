@@ -22,14 +22,14 @@ class FastMMD:
     """
 
     def __init__(self, device, in_features, out_features=500, gamma=1.0):
-        # W sampled from normal
+        # W sampled from normal, initialize w and b for optimization
         self.w_rand = torch.randn((in_features, out_features)).to(device)
         # b sampled from uniform
         self.b_rand = torch.zeros((out_features,)).uniform_(0, 2 * math.pi).to(device)
-        self.scale_a = math.sqrt(2 / out_features)
+        self.scale_a = math.sqrt(2 / out_features) #hyperparam for mmd
         self.scale_b = math.sqrt(2 / gamma)
 
-    def __call__(self, a, b, *args, **kwargs):
+    def __call__(self, a, b, *args, **kwargs): #It is used for a direct call using the object, callable object
         phi_a = self._phi(a, self.w_rand, self.b_rand)
         phi_b = self._phi(b, self.w_rand, self.b_rand)
 
@@ -40,7 +40,7 @@ class FastMMD:
         out = self.scale_a * (self.scale_b * (x @ w_rand + b_rand)).cos()
         return out
 
-
+#define the train loop for reprogramming
 def train_loop(model, train_dl, device, optimizer, scheduler, num_label, adversary_loss_weight=0.0, adversary=None,
                adversary_with_y=None, adversary_optimizer=None, adversary_scheduler=None, use_trigger=None,
                num_batch_per_epoch=None, pseudo_model=None, gradient_clipping=-1.0, ce_loss_weight=1.0,
@@ -72,24 +72,28 @@ def train_loop(model, train_dl, device, optimizer, scheduler, num_label, adversa
     :param mmd_loss_weight: weight of mmd loss
     :param use_adversary_projection: whether remove ce gradient projection on adversary grad
     """
-    model.train()
+    model.train()# Put model in training mode (this is the default state of a model)
     acc_all, loss_all, adv_loss_all, len_dl = 0, 0, 0, 0
 
+    # i = id of enumurate, idx,x,y,z = output from train_dl
     for i, (idx, x, y, z) in enumerate(tqdm(train_dl, file=sys.stdout)):
         if i == num_batch_per_epoch:
             break
-
+        #assign x y z to cpu/gpu
         x, y, z = _to_device(x, device), _to_device(y, device), _to_device(z, device)
         if pseudo_model is not None:
             y = pseudo_model(*x) if type(x) in [tuple, list] else pseudo_model(x)[-1].view(-1)
 
         o, prob, pred = model(*x) if type(x) in [tuple, list] else model(x)
 
-        adversary_grad, adversary_loss = None, torch.tensor(0)
+        adversary_grad, adversary_loss = None, torch.tensor(0) #initialize adversary optimization
         if adversary is not None and adversary_loss_weight > 0:
+            # Zero grad of the optimizer for both model overall optimizer and the adversary optimizer
             adversary_optimizer.zero_grad()
             optimizer.zero_grad()
+            #adversary = the adversary model, take o and y as input
             o_adversary = adversary(o, y=y if adversary_with_y else None)
+            
             if z.shape[1] == 2 and o_adversary.shape[1] == 1:
                 z = z[:, 0].view(-1, 1)
             adversary_loss = nn.functional.binary_cross_entropy_with_logits(o_adversary, z.float())

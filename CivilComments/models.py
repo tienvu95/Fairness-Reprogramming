@@ -72,7 +72,8 @@ class Adversary4Z(torch.nn.Module):
                     self.seq.append(torch.nn.ReLU())
         else:
             self.fc = torch.nn.Linear(self.input_dim, output_dim, bias=True)
-
+            
+    # Forward defines the computation in the model
     def forward(self, inputs, *, y=None):
         assert len(inputs.shape) == 2 #test if shape of input is 2 else raise assertion error
 

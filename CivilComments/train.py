@@ -93,13 +93,17 @@ def train_loop(model, train_dl, device, optimizer, scheduler, num_label, adversa
             optimizer.zero_grad()
             #adversary = the adversary model, take o and y as input
             o_adversary = adversary(o, y=y if adversary_with_y else None)
-            
+
+            #resize and reshape the value for y and compute the cross entropy with logits
             if z.shape[1] == 2 and o_adversary.shape[1] == 1:
                 z = z[:, 0].view(-1, 1)
+
             adversary_loss = nn.functional.binary_cross_entropy_with_logits(o_adversary, z.float())
+            #backward after zero grading
+            # we have 2 loss so retain graph allows computer to retain memory so we can compute loss 1 then loss 2
             adversary_loss.backward(retain_graph=True)
             if use_trigger:
-                adversary_grad = {
+                adversary_grad = {# named_parameters return both name of params and params itself
                     name: param.grad.clone() for name, param in model.named_parameters()
                     if "trigger" in name and param.requires_grad and param.grad is not None
                 }
@@ -108,7 +112,9 @@ def train_loop(model, train_dl, device, optimizer, scheduler, num_label, adversa
                     name: param.grad.clone() for name, param in model.named_parameters()
                     if param.requires_grad and param.grad is not None
                 }
+                #Progress the optimizer for adversary
             adversary_optimizer.step()
+
 
         if multi_label_task or num_label == 1:
             loss = nn.functional.binary_cross_entropy_with_logits(o, y.view(o.shape[0], -1).float()) * ce_loss_weight
@@ -124,6 +130,7 @@ def train_loop(model, train_dl, device, optimizer, scheduler, num_label, adversa
         else:
             mmd = None
 
+        #progress for overall loss function
         optimizer.zero_grad()
         loss.backward()
 
@@ -142,6 +149,7 @@ def train_loop(model, train_dl, device, optimizer, scheduler, num_label, adversa
         if gradient_clipping > 0:
             torch.nn.utils.clip_grad_norm_(model.parameters(), gradient_clipping)
 
+        #progress the optimizer
         optimizer.step()
 
         acc_all += (pred.view(-1) == y).type(torch.float).sum().item()

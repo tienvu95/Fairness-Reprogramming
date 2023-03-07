@@ -197,6 +197,8 @@ def set_device_model(config, num_label, emb=None, num_feature=None, multi_label_
         if "embedding_trigger_init_method" in config.keys() else "random"
     use_straight_through = config["use_straight_through"] if "use_straight_through" in config.keys() else False
 
+
+    ##run bert base uncased model
     if config["model"] == "bert-base-uncased":
         model = BertBaseUncasedModel(output_dim=num_label, num_trigger_word=num_trigger_word,
                                      trigger_on_embedding=trigger_on_embedding,

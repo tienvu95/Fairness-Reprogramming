@@ -73,6 +73,7 @@ def train_loop(model, train_dl, device, optimizer, scheduler, num_label, adversa
     :param use_adversary_projection: whether remove ce gradient projection on adversary grad
     """
     model.train()# Put model in training mode (this is the default state of a model)
+    ## model output logits
     acc_all, loss_all, adv_loss_all, len_dl = 0, 0, 0, 0
 
     # i = id of enumurate, idx,x,y,z = output from train_dl
